@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI ATS Resume Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117;
+        }
+        textarea::-webkit-scrollbar { width: 8px; }
+        textarea::-webkit-scrollbar-thumb { background-color: #1f2a37; border-radius: 4px; }
+        textarea::-webkit-scrollbar-track { background-color: #0d1117; }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-blue': '#4c7cff',
+                        'dark-bg-card': '#161b22',
+                        'success-green': '#34d399',
+                        'warning-orange': '#fbbf24',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen p-4 sm:p-8 text-white">
+
+    <div class="max-w-6xl mx-auto space-y-8">
+        <header class="text-center py-4">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-primary-blue tracking-tight">AI ATS Resume Matcher</h1>
+            <p class="mt-2 text-lg text-gray-400">Instantly compare your resume against any Job Description.</p>
+        </header>
+
+        <div class="bg-dark-bg-card p-6 sm:p-8 rounded-xl shadow-2xl border border-gray-700">
+            <h2 class="text-2xl font-semibold mb-6">1. Input Job Details</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <label for="jobDescription" class="block text-sm font-medium text-gray-300 mb-2">Paste Full Job Description (JD) Here</label>
+                    <textarea id="jobDescription" rows="12" placeholder="Paste JD here..." class="w-full p-4 bg-gray-900 border border-gray-700 rounded-lg focus:ring-primary-blue focus:border-primary-blue text-gray-200 transition"></textarea>
+                </div>
+                
+                <div class="lg:col-span-1 flex flex-col justify-between">
+                    <div>
+                        <label for="resumeFile" class="block text-sm font-medium text-gray-300 mb-2">2. Upload Resume (PDF Only)</label>
+                        <label for="resumeFile" id="dropArea" class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer bg-gray-900 hover:bg-gray-800 transition">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <svg class="w-8 h-8 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 014 4v16a3 3 0 01-3 3H5a3 3 0 01-3-3V10a3 3 0 013-3h1m4 0l-3 3m0 0l3 3m-3-3h8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                                <p id="fileName" class="mb-2 text-sm text-gray-400"><span class="font-semibold">Click to upload</span></p>
+                            </div>
+                            <input id="resumeFile" type="file" class="hidden" accept=".pdf" />
+                        </label>
+                        <div id="fileStatus" class="mt-2 text-sm text-gray-400 hidden"></div>
+                    </div>
+
+                    <button id="analyzeButton" onclick="handleAnalysis()" class="mt-6 w-full py-3 px-6 text-lg font-bold text-white bg-primary-blue rounded-lg shadow-lg hover:bg-blue-600 transition transform hover:scale-[1.01]">Analyze Match</button>
+                    <div id="loadingIndicator" class="hidden mt-4 text-center">
+                        <svg class="animate-spin h-5 w-5 text-primary-blue mx-auto" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="resultsContainer" class="hidden space-y-6">
+            <h2 class="text-3xl font-bold text-primary-blue pt-4 text-center">ATS Analysis Report</h2>
+            <div class="bg-dark-bg-card p-6 sm:p-8 rounded-xl shadow-2xl border border-gray-700 text-center">
+                <p class="text-sm uppercase tracking-wider text-gray-400">Overall Match Score</p>
+                <p id="matchPercentage" class="text-7xl font-extrabold mt-2"></p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-dark-bg-card p-6 rounded-xl border border-gray-700">
+                    <h3 class="text-xl font-semibold mb-3 text-success-green">Key Strengths</h3>
+                    <p id="strengthsText" class="text-gray-300"></p>
+                </div>
+                <div class="bg-dark-bg-card p-6 rounded-xl border border-gray-700">
+                    <h3 class="text-xl font-semibold mb-3 text-warning-orange">Improvement Suggestions</h3>
+                    <p id="suggestionsText" class="text-gray-300"></p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-dark-bg-card p-6 rounded-xl border border-gray-700">
+                    <h3 class="text-xl font-semibold mb-3 text-primary-blue">Matching Skills</h3>
+                    <div id="matchingSkillsList" class="flex flex-wrap gap-2 mt-4"></div>
+                </div>
+                <div class="bg-dark-bg-card p-6 rounded-xl border border-gray-700">
+                    <h3 class="text-xl font-semibold mb-3 text-red-500">Missing Skills</h3>
+                    <div id="missingSkillsList" class="flex flex-wrap gap-2 mt-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="messageBox" class="fixed bottom-4 right-4 z-50 transition-opacity duration-300 opacity-0"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:5000'; 
+        const API_ENDPOINT = `${API_BASE_URL}/analyze`;
+
+        const jobDescriptionEl = document.getElementById('jobDescription');
+        const resumeFileEl = document.getElementById('resumeFile');
+        const analyzeButton = document.getElementById('analyzeButton');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const messageBox = document.getElementById('messageBox');
+        const fileStatusEl = document.getElementById('fileStatus');
+
+        function showMessage(message, type = 'error') {
+            const color = type === 'success' ? 'bg-success-green' : 'bg-red-500';
+            messageBox.innerHTML = `<div class="${color} text-white p-4 rounded-lg shadow-xl">${message}</div>`;
+            messageBox.classList.replace('opacity-0', 'opacity-100');
+            setTimeout(() => messageBox.classList.replace('opacity-100', 'opacity-0'), 5000);
+        }
+
+        function renderResults(data) {
+            const matchEl = document.getElementById('matchPercentage');
+            const score = parseInt(data.match_percentage.replace('%', ''));
+            matchEl.textContent = data.match_percentage;
+
+            // --- APPLIED YOUR COLOR RULES ---
+            matchEl.className = 'text-7xl font-extrabold mt-2'; // Reset classes
+            if (score >= 70) {
+                matchEl.classList.add('text-success-green'); // GREEN
+            } else if (score >= 60) {
+                matchEl.classList.add('text-warning-orange'); // YELLOW/ORANGE
+            } else {
+                matchEl.classList.add('text-red-500'); // RED
+            }
+
+            document.getElementById('strengthsText').textContent = data.strengths;
+            document.getElementById('suggestionsText').textContent = data.improvement_suggestions;
+
+            const renderSkills = (listId, skills, bgColor) => {
+                const listEl = document.getElementById(listId);
+                listEl.innerHTML = '';
+                skills.forEach(skill => {
+                    const tag = document.createElement('span');
+                    tag.className = `px-3 py-1 text-xs font-semibold rounded-full ${bgColor} text-gray-900`;
+                    tag.textContent = skill;
+                    listEl.appendChild(tag);
+                });
+            };
+
+            renderSkills('matchingSkillsList', data.matching_skills, 'bg-success-green');
+            renderSkills('missingSkillsList', data.missing_skills, 'bg-red-500');
+
+            resultsContainer.classList.remove('hidden');
+            window.scrollTo({ top: resultsContainer.offsetTop, behavior: 'smooth' });
+        }
+
+        resumeFileEl.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                fileStatusEl.textContent = `File: ${e.target.files[0].name}`;
+                fileStatusEl.classList.remove('hidden');
+            }
+        });
+
+        async function handleAnalysis() {
+            const jd = jobDescriptionEl.value.trim();
+            const file = resumeFileEl.files[0];
+
+            if (jd.length < 50 || !file) {
+                showMessage("Please provide a valid JD and Resume PDF.");
+                return;
+            }
+
+            analyzeButton.disabled = true;
+            analyzeButton.textContent = 'Processing...';
+            loadingIndicator.classList.remove('hidden');
+            
+            try {
+                const formData = new FormData();
+                formData.append('job_description', jd);
+                formData.append('resume_pdf', file);
+
+                const response = await fetch(API_ENDPOINT, { method: 'POST', body: formData });
+                const result = await response.json();
+                
+                if (response.ok) renderResults(result);
+                else throw new Error(result.error || "Server Error");
+
+            } catch (error) {
+                showMessage(error.message);
+            } finally {
+                analyzeButton.disabled = false;
+                analyzeButton.textContent = 'Analyze Match';
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
