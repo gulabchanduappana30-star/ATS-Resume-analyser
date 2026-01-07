@@ -11,7 +11,7 @@ import requests
 
 # --- Configuration ---
 # WARNING: Keep your API Key secret. Do not share this file publicly.
-API_KEY = "AIzaSyBfJhhyUp5cwn8jWdCCt_sbpHnDqwJWW70" 
+API_KEY = "" 
 GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025"
 API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={API_KEY}"
 
